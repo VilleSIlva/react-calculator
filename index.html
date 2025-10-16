@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap"
+        rel="stylesheet">
+    <title>Calculadora</title>
+    <style type="text/tailwindcss">
+        @theme {
+       --text: #EBEBEB;
+       --text-secondary: #6B6B6B;
+       --primary: #462878;
+       --background: #2D2A37;
+ 
+       --gradient: 180deg, 
+         rgba(0, 0, 0, 0.05) 0%, 
+         rgba(255, 255, 255, 0.05) 100%;
+ 
+       --gradient-hover: 180deg, 
+         rgba(0, 0, 0, 0.1) 0%, 
+         rgba(255, 255, 255, 0.1) 100%;
+ 
+       --shadow: 0px 11px 7px 0px rgba(0, 0, 0, 0.01), 
+         0px 7px 7px 0px rgba(0, 0, 0, 0.04), 
+         0px 4px 6px 0px rgba(0, 0, 0, 0.10), 
+         0px 2px 4px 0px rgba(0, 0, 0, 0.26), 
+         0px 0px 2px 0px rgba(0, 0, 0, 0.29), 
+         0px 2px 3px 0px rgba(255, 255, 255, 0.06) inset;
+ 
+       --font-sans: 'Rubik', sans-serif;
+     }
+   </style>
+</head>
+
+<body class="text-(--text) font-(--font-sans) bg-gray-300 min-h-screen">
+    <div class="root"></div>
+
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+    <script type="text/babel">
+        ReactDOM.createRoot(document.querySelector('.root')).render(
+            <App />
+        );
+
+        function App() {
+            return (
+                <main className="py-28 px-4 flex flex-col sm:flex-row sm:items-stretch justify-center items-center gap-3">
+                    <HistoryProvider>
+                        <Calculator />
+                        <CalculatorHistory />
+                    </HistoryProvider >
+                </main>
+            );
+        }
+
+        const textVariants = {
+            default: 'text-xl',
+            muted: 'text-xl text-(--text-secondary)',
+            heading: 'text-2xl',
+            blast: 'text-3xl'
+        }
+
+        function Text({ as = 'span', variant = 'default', className, children, ...props }) {
+            return React.createElement(
+                as,
+                {
+                    className: `${textVariants[variant]} ${className}`,
+                    ...props
+                },
+                children
+            )
+        }
+
+        const buttonVariant = {
+            default: 'bg-(--background)',
+            primary: 'bg-(--primary)'
+        }
+
+        function Button({ children, className, variant = 'default', ...props }) {
+            return (
+                <Text
+                    as='button'
+                    variant='heading'
+                    className={`
+                    flex justify-center p-3
+                    items-center text-(--text)
+                    bg-linear-(--gradient)
+                    rounded-xl
+                    hover:bg-linear-(--gradient-hover)
+                    shadow-(--shadow) ${className ? className : ""} ${buttonVariant[variant]} `} {...props} >
+                    {children}
+                </Text >
+            )
+        }
+
+        function Card({ className, children, ...props }) {
+            return (
+                <div className={`bg-(--background) shadow-(--shadow) rounded-3xl ${className ?? ""}`} {...props}>
+                    {children}
+                </div>
+            )
+        }
+
+        const buttons = [
+
+            [
+                { input: 'CE' },
+                { input: 'C', className: 'h-16 flex-1' },
+                { input: '%', variant: 'primary' }
+            ],
+            [
+                { input: '7' },
+                { input: '8' },
+                { input: '9' },
+                { input: '*', variant: 'primary' },
+
+            ],
+            [
+                { input: '4' },
+                { input: '5' },
+                { input: '6' },
+                { input: '-', variant: 'primary' },
+
+            ],
+            [
+                { input: '3' },
+                { input: '2' },
+                { input: '1' },
+                { input: '+', variant: 'primary' },
+
+            ],
+            [
+                { input: '0', className: 'h-16 flex-1' },
+                { input: ',' },
+                { input: '=', variant: 'primary' },
+            ]
+        ]
+
+        function Calculator({ className, children, ...props }) {
+            const [operation, setOperation] = React.useState('')
+            const [result, setResult] = React.useState('')
+            const { saveHistory } = React.useContext(HistoryContext)
+            function handlerInputClick(input) {
+
+                if (input === 'C') {
+                    setOperation('')
+                    setResult('')
+                    return
+                }
+
+                if (input == 'CE') {
+                    setResult('')
+                    setOperation(operation.slice(0, -1))
+                    return
+                }
+
+                if (result) {
+                    setOperation(isNaN(input) ? `${result}${input}` : input)
+                    setResult('');
+                    return;
+                }
+
+                if (input === '=') {
+                    const operationResult = eval(operation.replace(/,/g, '.'));
+                    const parsedResult = operationResult.toString()?.replace(/\./g, ',')
+                    saveHistory(operation, parsedResult)
+                    setResult(parsedResult)
+                    return
+                }
+
+                if (input === ',') {
+                    setOperation(`${operation},`)
+                    return
+                }
+                setOperation(`${operation}${input}`)
+            }
+            return (
+                <Card className={`flex flex-col gap-[1.625rem] w-[22.25rem] pt-14 px-8 pb-8`}>
+                    <Display operation={operation} result={result} />
+                    <div className="flex flex-col gap-2">
+                        {buttons.map((row, index) => (
+                            <div key={index} className="flex gap-3">
+                                {row.map((item, index) => <Button
+                                    variant={item.variant}
+                                    className={item.className ?? 'w-16 h-16'}
+                                    onClick={() => handlerInputClick(item.input)}
+                                    key={`${item.input}-${index}`}>
+                                    {item.input}
+                                </Button>)}
+                            </div>
+                        ))}
+                    </div >
+                </Card >
+            )
+        }
+
+        const HistoryContext = React.createContext();
+
+        function HistoryProvider({ children }) {
+            const [history, setHistory] = React.useState([]);
+            const keyStorage = 'history'
+
+            React.useEffect(() => {
+                const storageHistory = localStorage.getItem(keyStorage);
+                setHistory(JSON.parse(storageHistory) ?? [])
+            }, [])
+
+            function saveHistory(operation, result) {
+                setHistory((prev) => {
+                    const updateHistory = [...prev, `${operation} = ${result}`]
+
+                    localStorage.setItem(keyStorage, JSON.stringify(updateHistory));
+                    return updateHistory;
+                })
+            }
+
+            return (
+                <HistoryContext.Provider value={{ history, saveHistory }}>
+                    {children}
+                </HistoryContext.Provider>
+            )
+        }
+
+
+
+        function Display({ operation, result }) {
+            return (
+                < div className='flex flex-col gap-2 px-[1.323rem]' >
+                    <Text as="div" className="flex items-center justify-end h-6" variant="muted">
+                        {result && operation}
+                    </Text>
+                    <div className="flex flex-row justify-between h-9 items-center">
+                        <Text variant="muted">=</Text>
+                        <Text variant="blast">{result || operation}</Text>
+                    </div>
+                </div >
+            )
+        }
+
+        function CalculatorHistory() {
+            const { history } = React.useContext(HistoryContext)
+            return (
+                <Card className='px-10 py-8 overflow-auto h-96'>
+                    <Text variant="heading" className="mb-3" as='h1'>Histório de operacão</Text>
+
+                    <ul className="flex flex-col gap-3">
+
+                        {history.length > 0 ? (history.map((item, index) => <Text key={index} as="li">{item}</Text>)) : ('Não tem histórico')}
+                    </ul>
+                </Card>
+            )
+        }
+    </script>
+</body>
+
+</html>
